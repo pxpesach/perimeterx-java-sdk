@@ -1,5 +1,6 @@
 package com.perimeterx.http;
 
+import com.perimeterx.internals.IdleConnectionMonitor;
 import com.perimeterx.models.activities.Activity;
 import com.perimeterx.models.exceptions.PXException;
 import com.perimeterx.models.httpmodels.CaptchaRequest;
@@ -36,6 +37,7 @@ public class PXHttpClient implements PXClient {
     private static final Charset UTF_8 = Charset.forName("utf-8");
 
     private CloseableHttpClient httpClient;
+    private IdleConnectionMonitor idleConnMonitor;
     private String authToken;
     private String baseUrl;
 
@@ -53,16 +55,31 @@ public class PXHttpClient implements PXClient {
     private PXHttpClient(String baseUrl, int timeout, String authToken) {
         this.baseUrl = baseUrl;
         this.authToken = authToken;
-        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
         cm.setMaxTotal(200);
         cm.setDefaultMaxPerRoute(20);
         RequestConfig config = RequestConfig.custom()
                 .setConnectionRequestTimeout(timeout)
                 .build();
-        httpClient = HttpClients.custom()
+        this.httpClient = HttpClients.custom()
                 .setConnectionManager(cm)
                 .setDefaultRequestConfig(config)
                 .build();
+        this.idleConnMonitor = new IdleConnectionMonitor(cm);
+        (new Thread(this.idleConnMonitor)).start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    System.err.println("Going to shutdown the idle connection monitor");
+                    idleConnMonitor.shutdown();
+                    httpClient.close();
+                } catch (IOException e) {
+                    //e.printStackTrace();
+                }
+            }
+        }));
     }
 
     @Override
