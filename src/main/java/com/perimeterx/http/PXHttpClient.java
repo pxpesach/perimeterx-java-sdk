@@ -10,6 +10,7 @@ import com.perimeterx.models.httpmodels.RiskResponse;
 import com.perimeterx.utils.Constants;
 import com.perimeterx.utils.JsonUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -95,7 +96,10 @@ public class PXHttpClient implements PXClient {
             httpResponse = httpClient.execute(post);
             String s = IOUtils.toString(httpResponse.getEntity().getContent(), UTF_8);
             logger.info("Risk API Response: {}", s);
-            return JsonUtils.riskResponseReader.readValue(s);
+            if (httpResponse.getStatusLine().getStatusCode() == 200) {
+                return JsonUtils.riskResponseReader.readValue(s);
+            }
+            return null;
         } catch (Exception e) {
             throw new PXException(e);
         } finally {
@@ -138,7 +142,10 @@ public class PXHttpClient implements PXClient {
             httpResponse = httpClient.execute(post);
             String s = IOUtils.toString(httpResponse.getEntity().getContent(), UTF_8);
             logger.info("Captcha verification response: {}", s);
-            return JsonUtils.captchaResponseReader.readValue(s);
+            if (httpResponse.getStatusLine().getStatusCode() == 200) {
+                return JsonUtils.captchaResponseReader.readValue(s);
+            }
+            return null;
         } catch (Exception e) {
             throw new PXException(e);
         } finally {
