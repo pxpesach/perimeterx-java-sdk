@@ -21,7 +21,6 @@ public class IdleConnectionMonitor implements Runnable {
         try {
             while (!shutdown) {
                 synchronized (this) {
-                    System.err.println("Going to check for closed connections");
                     wait(5000);
                     // close expired connection
                     connMgr.closeExpiredConnections();
@@ -34,7 +33,6 @@ public class IdleConnectionMonitor implements Runnable {
     }
 
     public void shutdown() {
-        System.err.println("Shutting down monitor");
         shutdown = true;
         synchronized (this) {
             notifyAll();
